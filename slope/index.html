@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam 1</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body{
+            min-width: 100%;
+            height: 100%;
+        }
+        body{
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            background: white;
+        }
+        button{
+            width: 50px;
+            height: 50px;
+            border: none;
+            background: lightblue;
+        }
+    </style>
+    <script>
+        const acceptedChars = ["Y", "O", "X", "_"];
+        let runCnt = 0;
+        let errMsg = "";
+        let yMax = 0;
+        let xMax = 0;
+        let mainLocation = {
+            x: 0,
+            y: 0
+        }
+        let obstacles = [];
+        let targets = [];
+
+        function getGCD(x, y) {
+            if ((typeof x !== 'number') || (typeof y !== 'number')) return false;
+            x = Math.abs(x);
+            y = Math.abs(y);
+            while(y) {
+                var t = y;
+                y = x % y;
+                x = t;
+            }
+            return x;
+        }
+
+        function processInput(inputText){
+            // get coordinates
+            // assume that the plane is in quadrant 4 of cartesian plane (+,-)
+            // 1st character is in (0,0)
+            let isValid = true;
+            let isYAlreadyFound = false;
+            let ch = "";
+            let xTmp = 0;
+            let yTmp = 0;
+            for(let i = 0; i < inputText.length; i++){
+                ch = inputText[i].toUpperCase();
+
+                if (ch == "\n"){
+                    if(xMax != xTmp && xMax != 0 && xTmp != 0){
+                        console.log(`${xMax} != ${xTmp}`);
+                        isValid = false;
+                        errMsg = "Length of each lines should be equal";
+                        break;
+                    }
+                    else{
+                        xMax = xTmp;
+                        xTmp = 0;
+                        yTmp--;
+                        continue;
+                    }
+                }
+
+                if (ch == "Y"){ // main
+                    if(isYAlreadyFound){
+                        isValid = false;
+                        errMsg = "'Y' can only be one";
+                        break;
+                    }
+                    isYAlreadyFound = true;
+                    mainLocation.x = xTmp;
+                    mainLocation.y = yTmp;
+                }
+                else if (ch == "X"){ // obstacle
+                    obstacles.push({
+                        x: xTmp,
+                        y: yTmp
+                    });
+                }
+                else if (ch == "O"){ // obstacle
+                    targets.push({
+                        x: xTmp,
+                        y: yTmp
+                    });
+                }
+
+                if(!(acceptedChars.includes(ch))){
+                    isValid = false;
+                    errMsg = ch+" is not in "+acceptedChars.join(",");
+                    break;
+                }
+                
+                xTmp++;
+            }
+            if(!isYAlreadyFound){
+                isValid = false;
+                errMsg = "Y is not found";
+            }
+
+            yMax = yTmp;
+
+            return isValid;
+        }
+
+        function getTotalTarget(){
+            // using cartesian coordinate system
+            const x1 = mainLocation.x;
+            const y1 = mainLocation.y;
+            console.log(`MainLocation = ${x1}, ${y1}`);
+            let total = 0;
+            targets.forEach(target => {
+                let isTargetOnSight = true;
+                x2 = target.x;
+                y2 = target.y;
+                run = x2 - x1;
+                rise = y2 - y1;
+                if(run == 0){ // slope is imaginary -- along the y-axis
+                    for(let i = 0; i < obstacles.length; i++){
+                        obstacle = obstacles[i];
+                        obsX = obstacle.x;
+                        obsY = obstacle.y;
+                        if (rise > 0 && obsY > y1 && obsY < y2 && obsX == x1){ // on top of mainLocation
+                            console.log("obstacle on top of mainLocation blocked 1 of target");
+                            isTargetOnSight = false;
+                        }
+                        else if (rise < 0 && obsY < y1 && obsY > y2 && obsX == x1){ // on bot of mainLocation
+                            console.log("obstacle below mainLocation blocked 1 of target");
+                            isTargetOnSight = false;
+                        }
+
+                        if(!isTargetOnSight) break;
+                    }
+                }
+                else if (rise == 0){ // there is no slope -- along the x-axis
+                    for(let i = 0; i < obstacles.length; i++){
+                        obstacle = obstacles[i];
+                        obsX = obstacle.x;
+                        obsY = obstacle.y;
+                        if (run > 0 && obsX > x1 && obsX < x2 && obsY == y1){ // on right of mainLocation
+                            console.log("obstacle on right of mainLocation blocked 1 of target");
+                            isTargetOnSight = false;
+                        }
+                        else if (run < 0 && obsX < x1 && obsX > x2 && obsY == y1){ // on left of mainLocation
+                            console.log("obstacle on left mainLocation blocked 1 of target");
+                            isTargetOnSight = false;
+                        }
+
+                        if(!isTargetOnSight) break;
+                    };
+                }
+                else {
+                    console.log(`Target = ${x2}, ${y2}`);
+                    gcd = getGCD(rise, run);
+                    run /= gcd;
+                    rise /= gcd;
+                    m = rise / run; // slope formula
+                    console.log(`run: ${run} / rise: ${rise} / slope: ${m}`);
+                    // check the middle of 2 points for obstacle
+                    runAdder = (run > 0 ? 1 : -1);
+                    riseAdder = (rise > 0 ? 1 : -1);
+                    /* SLOPE FORMULA
+                        * y - y1 = m(x - x1)
+                        * i = ((j - y1)/m) + x1 ---- formula for X
+                        * j = m(i - x1) + y1 ----- formula for Y
+                        * 
+                    */
+                    
+                    let i = x1; // for index x
+                    let j = y1; // for index y
+                    while (i != x2){
+                        i += runAdder;
+                        j = ((i - x1) * m) + y1;
+                        console.log(`${i}, ${j}`);
+
+                        foundCeil = obstacles.find(obstacle =>
+                            (obstacle.x == i && obstacle.y == Math.ceil(j))
+                        );
+
+                        foundFloor = obstacles.find(obstacle =>
+                            (obstacle.x == i && obstacle.y == Math.floor(j))
+                        );
+
+                        if(foundCeil && foundFloor){
+                            console.log(`found on (${i}, ${j})`);
+                            isTargetOnSight = false;
+                            break;
+                        }
+                    }
+
+                    // reset
+                    i = x1;
+                    j = y1;
+                    while (j != y2 && isTargetOnSight){
+                        j += riseAdder;
+                        i = ((j - y1) / m) + x1;
+                        console.log(`${i}, ${j}`);
+
+                        foundCeil = obstacles.find(obstacle =>
+                            (obstacle.y == j && obstacle.x == Math.ceil(i))
+                        );
+
+                        foundFloor = obstacles.find(obstacle =>
+                            (obstacle.y == j && obstacle.x == Math.floor(i))
+                        );
+
+                        if(foundCeil && foundFloor){
+                            console.log(`found on (${i}, ${j})`);
+                            isTargetOnSight = false;
+                            break;
+                        }
+                    }
+                }
+                
+                if(isTargetOnSight) total++;
+            });
+            return total;
+        }
+
+        function resetAll(){
+            console.log(`========================== RUN #${runCnt} ==========================`);
+            errMsg = "";
+            yMax = 0;
+            xMax = 0;
+            mainLocation = {
+                x: 0,
+                y: 0
+            }
+            obstacles = [];
+            targets = [];
+        }
+
+        function btnOnclick(){
+            runCnt++;
+            resetAll();
+            let totalTargetOnSight = 0;
+            const inputText = document.querySelector("#txtInput").value + "\n";
+            // run computations here
+            if (!processInput(inputText)){
+                document.querySelector("#answer").textContent = "Invalid Input: "+errMsg;
+                return;
+            }
+
+            totalTargetOnSight = getTotalTarget();
+
+            document.querySelector("#answer").textContent = "Total: "+totalTargetOnSight;
+        }
+    </script>
+</head>
+<body>
+    <textarea name="txtInput" id="txtInput" cols="20" rows="10"></textarea>
+    <button type="button" onclick="btnOnclick()">Go</button>
+    <span id="answer">Answer will be displayed here!</span>
+</body>
+</html>
