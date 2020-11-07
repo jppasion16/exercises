@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraction Calculator</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        html, body{
+            height: 100vh;
+            width: 100vw;
+            overflow: auto;
+        }
+        body{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        hr{
+            margin: 5px 0;
+        }
+        input[type="number"]{
+            width: 45px;
+            height: 30px;
+            text-align: center;
+            font-size: medium;
+            -moz-appearance: textfield;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        select, button{
+            height: 30px;
+        }
+        button{
+            background-color: white;
+            border: 1px solid #777;
+        }
+        .container{
+            position: relative;
+            margin: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgb(187, 227, 243);
+        }
+        .container>*{
+            width: 200px;
+        }
+        .container>div{
+            margin: 10px 0;
+        }
+        .valContainer{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .valContainer.answer{
+            justify-content: center;
+        }
+        .answer span{
+            margin: 0 10px;
+        }
+        .answer h5{
+            flex: 1;
+        }
+    </style>
+    <script>
+        function byID(id){
+            return document.getElementById(id);
+        }
+
+        function getGCD(x, y) {
+            if ((typeof x !== 'number') || (typeof y !== 'number')) return false;
+            x = Math.abs(x);
+            y = Math.abs(y);
+            while(y) {
+                var t = y;
+                y = x % y;
+                x = t;
+            }
+            return x;
+        }
+
+        function simplify(fraction){
+            const gcd = getGCD(fraction.numerator, fraction.denominator);
+            return {
+                numerator: fraction.numerator / gcd,
+                denominator: fraction.denominator / gcd
+            }
+        }
+
+        function calculateFraction(num1, num2, operator){
+            if(num1.whole < 0) num1.numerator *= -1;
+            if(num2.whole < 0) num2.numerator *= -1;
+            const frac1 = {
+                numerator: ((num1.whole * num1.denominator) + num1.numerator) * num2.denominator,
+                denominator: num1.denominator * num2.denominator
+            };
+            const frac2 = {
+                numerator: ((num2.whole * num2.denominator) + num2.numerator) * num1.denominator,
+                denominator: num1.denominator * num2.denominator
+            };
+            console.log(frac1);
+            console.log(frac2);
+            let answer = {
+                numerator: 0,
+                denominator: 0
+            }
+            switch(operator){
+                case "+":
+                    answer = {
+                        numerator: frac1.numerator + frac2.numerator,
+                        denominator: frac1.denominator
+                    }
+                break;
+                case "-":
+                    answer = {
+                        numerator: frac1.numerator - frac2.numerator,
+                        denominator: frac1.denominator
+                    }
+                break;
+                case "*":
+                    answer = {
+                        numerator: frac1.numerator * frac2.numerator,
+                        denominator: frac1.denominator * frac2.denominator
+                    }
+                break;
+                case "/":
+                    answer = {
+                        numerator: frac1.numerator * frac2.denominator,
+                        denominator: frac1.denominator * frac2.numerator
+                    }
+                break;
+            }
+            answer = simplify(answer);
+
+            wholeNo = answer.numerator / answer.denominator;
+            console.log(`${answer.numerator} / ${answer.denominator} = ${wholeNo}`);
+            if(wholeNo >= 0) wholeNo = Math.floor(wholeNo);
+            else wholeNo = Math.ceil(wholeNo);
+
+            numeratorNo = Math.abs(answer.numerator % answer.denominator);
+
+            if(answer.denominator < 0){
+                if(wholeNo != 0) wholeNo *= -1;
+                else numeratorNo *= -1;
+            }
+
+            return {
+                whole: wholeNo,
+                numerator: numeratorNo,
+                denominator: Math.abs(answer.denominator)
+            };
+        }
+
+        function bodyOnLoad(){
+            document.querySelectorAll("#spanWhole, #spanTop, #spanBot, #ansHr").forEach(e => {
+                e.style.display = "none";
+            });
+            document.getElementById("btnCalc").addEventListener("click", () => {
+                console.log("start calculation");
+                const num1 = {
+                    whole: parseInt(byID("frac1Whole").value) || 0,
+                    numerator: parseInt(byID("frac1Top").value) || 0,
+                    denominator: parseInt(byID("frac1Bot").value) || 1
+                };
+                const num2 = {
+                    whole: parseInt(byID("frac2Whole").value) || 0,
+                    numerator: parseInt(byID("frac2Top").value) || 0,
+                    denominator: parseInt(byID("frac2Bot").value) || 1
+                };
+
+                const operator = byID("operators").value;
+
+                answer = calculateFraction(num1, num2, operator);
+                console.log(answer);
+
+                if(answer.whole != 0 || (answer.whole == 0 && answer.numerator == 0)){
+                    byID("spanWhole").textContent = answer.whole;
+                    byID("spanWhole").style.display = "";
+                }
+                else byID("spanWhole").style.display = "none";
+
+                if(answer.numerator != 0){
+                    byID("spanTop").textContent = answer.numerator;
+                    byID("spanBot").textContent = answer.denominator;
+                    document.querySelectorAll("#spanTop, #spanBot, #ansHr").forEach(e => {
+                        e.style.display = "";
+                    });
+                }
+                else{
+                    document.querySelectorAll("#spanTop, #spanBot, #ansHr").forEach(e => {
+                        e.style.display = "none";
+                    });
+                }
+            });
+        }
+    </script>
+</head>
+<body onload="bodyOnLoad()">
+    <div class="container">
+        <div class="valContainer">
+            <h5>1st number:</h5>
+            <input type="number" class="fractionWhole" name="frac1Whole" id="frac1Whole">
+            <div class="fractionContainer">
+                <input type="number" class="fractionTop" name="frac1Top" id="frac1Top">
+                <hr> 
+                <input type="number" class="fractionBot" name="frac1Bot" id="frac1Bot">
+            </div>
+        </div>
+
+        <div class="valContainer">
+            <h5>Operator:</h5>
+            <select name="operators" id="operators">
+                <option value="+">Plus (+)</option>
+                <option value="-">Minus (-)</option>
+                <option value="*">Multiply (&#215;)</option>
+                <option value="/">Divide (&#247;)</option>
+            </select>
+        </div>
+        
+        <div class="valContainer">
+            <h5>2nd number:</h5>
+            <input type="number" class="fractionWhole" name="frac2Whole" id="frac2Whole">
+            <div class="fractionContainer">
+                <input type="number" class="fractionTop" name="frac2Top" id="frac2Top">
+                <hr> 
+                <input type="number" class="fractionBot" name="frac2Bot" id="frac2Bot">
+            </div>
+        </div>
+
+        <button type="button" id="btnCalc">Calculate (=)</button>
+
+        <div class="valContainer answer">
+            <h5>Answer:</h5>
+            <span class="fractionWhole" id="spanWhole">0</span>
+            <div class="fractionContainer">
+                <span class="fractionTop" id="spanTop">0</span>
+                <hr id="ansHr"> 
+                <span class="fractionBot" id="spanBot">0</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
